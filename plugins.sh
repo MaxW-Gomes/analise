@@ -10,4 +10,6 @@ curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.pha
 
 ./wp plugin install imsanity --activate;
 
-./wp plugin install "LiteSpeed Cache --activate"
+./wp plugin install "LiteSpeed Cache --activate";
+
+rm wp
