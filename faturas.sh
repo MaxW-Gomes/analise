@@ -1,5 +1,7 @@
 #!/bin/bash
 
+arquivo="/home/mgomes/.env"
+
 function missingParam() {
     echo "[FATAL] Missing param(s): " "${@}"
     exit 1
@@ -7,7 +9,7 @@ function missingParam() {
 
 function getEnvVar() {
     requestedVar="${1}"
-    requestedVarValue=$(grep "${requestedVar}" "/home/mgomes/.env" | cut -d '=' -f2 | awk -F'"' '{print $2}')
+    requestedVarValue=$(grep "${requestedVar}" "${arquivo}" | cut -d '=' -f2 | awk -F'"' '{print $2}')
     if [[ -z "${requestedVarValue}" ]]; then
         missingParam ".env variable '${requestedVar}'"
     fi
@@ -67,11 +69,12 @@ done
 ## Dados do slack
 slackChannel="sandbox"
 slackKey=$(getEnvVar "CHAT_BOT_KEY")
-slackMessage="
-As faturas abaixo foram parcialmente pagas:
-
-$(echo "${verificar[@]}")
-"
+slackMessage='
+:As faturas abaixo foram parcialmente pagas:
+```
+'$(printf "%s\n" "${verificar[@]}")'
+```
+'
 ##
 
 #Envio da mensagem ao slack
