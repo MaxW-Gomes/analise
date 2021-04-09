@@ -19,14 +19,22 @@ secret=$(getEnvVar "secret")
 
 #Pegando os id's de todas as faturas que não foram pagas e colocando no arquivo /tmp/id.txt
 
-curl "https://app.goinfinite.net/includes/api.php?action=GetInvoices&status=Unpaid&limitnum=7&orderby=duedate&order=desc" --data "username=${user}" --data "password=${secret}" | grep '<id>' | sed 's|</i.*||g' | sed 's|.*id>||g' > /tmp/id.txt
+curl -sf "https://app.goinfinite.net/includes/api.php" \
+    --data "username=${user}" \
+    --data "password=${secret}" \
+    --data "responsetype=json" \
+    --data "action=GetInvoices" \
+    --data "status=Unpaid" \
+    --data "limitnum=920" \
+    --data "orderby=duedate" \
+    --data "order=desc" | jq '.invoices.invoice | .[].id' > /tmp/id.txt
 
 #pegando o número de linhas e atribuindo o valor à variável quantidade
 
 qtd=$(wc -l /tmp/id.txt | awk '{print $1}');
 
 declare -a id;
-declare -a total;
+declare -a subtotal;
 declare -a balanco;
 declare -a verificar;
 
@@ -35,13 +43,24 @@ declare -a verificar;
 for i in $(seq $qtd);
     do
         id[${i}]=$(sed -n "${i}p" /tmp/id.txt);
-        total[${i}]=$(curl "https://app.goinfinite.net/includes/api.php?action=GetInvoice&invoiceid=${id[i]}" --data "username=${user}" --data "password=${secret}" | grep '<total>' | sed 's|</total.*||g'  | sed 's|.*total>||g');
 
-        balanco[${i}]=$(curl "https://app.goinfinite.net/includes/api.php?action=GetInvoice&invoiceid=${id[i]}" --data "username=${user}" --data "password=${secret}" | grep '<balance>' | sed 's|</balance.*||g'  | sed 's|.*balance>||g');
+        subtotal[${i}]=$(curl -sf "https://app.goinfinite.net/includes/api.php" \
+    --data "username=${user}" \
+    --data "password=${secret}" \
+    --data "responsetype=json" \
+    --data "action=GetInvoice" \
+    --data "invoiceid=${id[${i}]}" | jq .subtotal | awk -F'"' '{print $2}');
 
-        if (( $(echo "${balanco[${i}]} < ${total[${i}]}" | bc -l) ))
+        balanco[${i}]=$(curl -sf "https://app.goinfinite.net/includes/api.php" \
+    --data "username=${user}" \
+    --data "password=${secret}" \
+    --data "responsetype=json" \
+    --data "action=GetInvoice" \
+    --data "invoiceid=${id[${i}]}" | jq .balance | awk -F'"' '{print $2}' );
+
+        if (( $(echo "${balanco[${i}]} < ${subtotal[${i}]}" | bc -l) ))
           then
-            verificar[${i}]=${id[${i}]};
+            verificar[${i}]="https://app.goinfinite.net/admin/invoices.php?action=edit&id=${id[${i}]}";
           fi
 done   
 
@@ -51,7 +70,7 @@ slackKey=$(getEnvVar "CHAT_BOT_KEY")
 slackMessage="
 As faturas abaixo foram parcialmente pagas:
 
-$(echo ${verificar[@]})
+$(echo "${verificar[@]}")
 "
 ##
 
