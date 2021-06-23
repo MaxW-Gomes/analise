@@ -15,9 +15,9 @@ function getEnvVar() {
     echo "${requestedVarValue}"
 }
 
-directoryCaptcha='/'
-apiKey=$(getEnvVar apikey)
-apiSecret=$(getEnvVar apiSecret)
+directoryCaptcha='/teste.txt'
+apiKey=$(getEnvVar "apikeyReidoscoins")
+apiSecret=$(getEnvVar "apiSecretReidoscoins")
 loadAverageLimit=$(nproc);
 
 function insertCaptcha(){
@@ -39,8 +39,17 @@ function removeCaptcha(){
 
 loadAverage=$(uptime | awk '{print $10}' | awk -F',' '{print $1}')
 
-if [[ "$loadAverage" -gt "$loadAverageLimit" ]]; then
+function isLoadAverageAboveLimit() {
+    if [[ "$loadAverage" -gt "$loadAverageLimit" ]]; then
+        echo 1
+        exit
+    fi
+    echo 0
+}
+
+if isLoadAverageAboveLimit; then
   insertCaptcha;
-else
-  removeCaptcha;
+  exit 1;
 fi
+
+removeCaptcha
