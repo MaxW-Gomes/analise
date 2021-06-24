@@ -42,15 +42,14 @@ loadAverage=$(uptime | awk '{print $10}' | awk -F',' '{print $1}')
 function isLoadAverageAboveLimit() {
     if [[ "$loadAverage" -gt "$loadAverageLimit" ]]; then
         echo 1
-        exit
+    else
+        echo 0
     fi
-    echo 0
 }
 
-if isLoadAverageAboveLimit; then
+if [[ isLoadAverageAboveLimit -eq 1 ]]; then
   insertCaptcha;
   exit 1;
 fi
 
-removeCaptcha
-
+removeCaptcha;
